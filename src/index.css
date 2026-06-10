@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Arial", sans-serif;
+  --font-display: "Arial", sans-serif;
+  --font-mono: "Arial", sans-serif;
+
+  /* Redefine indigo variables to map to tailwind's orange shades to match the theme color per user request */
+  --color-indigo-50: var(--color-orange-50);
+  --color-indigo-100: var(--color-orange-100);
+  --color-indigo-200: var(--color-orange-200);
+  --color-indigo-300: var(--color-orange-300);
+  --color-indigo-400: var(--color-orange-400);
+  --color-indigo-500: var(--color-orange-500);
+  --color-indigo-600: var(--color-orange-600);
+  --color-indigo-700: var(--color-orange-700);
+  --color-indigo-800: var(--color-orange-850);
+  --color-indigo-900: var(--color-orange-900);
+  --color-indigo-950: var(--color-orange-950);
+}
+
+body, html, #root, * {
+  font-family: "Arial", sans-serif !important;
+}
+
+/* Custom scrollbar for spreadsheet view */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
