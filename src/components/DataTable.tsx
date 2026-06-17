@@ -106,24 +106,29 @@ export default function DataTable({
   const handleSaveClick = () => {
     if (!editingUid || !editForm) return;
 
+    const rawIsLeaveOrTraining = !!editForm.isLeave || !!editForm.isTraining;
     // Calculate updated fields using helper
     const updated = computeLogCalculations({
       uid: editForm.uid!,
       date: editForm.date!,
       id: editForm.id!.toUpperCase(),
       name: editForm.name!,
-      inTime: editForm.isLeave ? "" : editForm.inTime || "",
-      outTime: editForm.isLeave ? "" : editForm.outTime || "",
+      inTime: rawIsLeaveOrTraining ? "" : editForm.inTime || "",
+      outTime: rawIsLeaveOrTraining ? "" : editForm.outTime || "",
       isOffDay: !!editForm.isOffDay,
       isLeave: !!editForm.isLeave,
       isWastewater: !!editForm.isWastewater,
-      typeA: editForm.isLeave ? 0 : Number(editForm.typeA || 0),
-      typeB: editForm.isLeave ? 0 : Number(editForm.typeB || 0),
-      typeC: editForm.isLeave ? 0 : Number(editForm.typeC || 0),
-      foodSample: editForm.isLeave ? 0 : Number(editForm.foodSample || 0),
-      combinedSample: editForm.isLeave
+      isTraining: !!editForm.isTraining,
+      typeA: rawIsLeaveOrTraining ? 0 : Number(editForm.typeA || 0),
+      typeB: rawIsLeaveOrTraining ? 0 : Number(editForm.typeB || 0),
+      typeC: rawIsLeaveOrTraining ? 0 : Number(editForm.typeC || 0),
+      foodSample: rawIsLeaveOrTraining ? 0 : Number(editForm.foodSample || 0),
+      combinedSample: rawIsLeaveOrTraining
         ? 0
         : Number(editForm.combinedSample || 0),
+      cnASample: rawIsLeaveOrTraining
+        ? 0
+        : Number(editForm.cnASample || 0),
     });
 
     onUpdateLog(updated);
@@ -204,12 +209,14 @@ export default function DataTable({
       const offDaysCount = gLogs.filter((l) => l.isOffDay).length;
       const leaveDaysCount = gLogs.filter((l) => l.isLeave).length;
       const wastewaterDaysCount = gLogs.filter((l) => l.isWastewater).length;
+      const trainingDaysCount = gLogs.filter((l) => l.isTraining).length;
 
       const totalTypeA = gLogs.reduce((sum, l) => sum + (l.typeA || 0), 0);
       const totalTypeB = gLogs.reduce((sum, l) => sum + (l.typeB || 0), 0);
       const totalTypeC = gLogs.reduce((sum, l) => sum + (l.typeC || 0), 0);
       const totalFoodSample = gLogs.reduce((sum, l) => sum + (l.foodSample || 0), 0);
       const totalCombinedSample = gLogs.reduce((sum, l) => sum + (l.combinedSample || 0), 0);
+      const totalCnASample = gLogs.reduce((sum, l) => sum + (l.cnASample || 0), 0);
       const totalOnlyRslSample = gLogs.reduce((sum, l) => sum + (l.onlyRslSample || 0), 0);
       const totalWorkMins = gLogs.reduce((sum, l) => sum + (l.workMins || 0), 0);
       const totalExtra = gLogs.reduce((sum, l) => sum + (l.extra || 0), 0);
@@ -218,12 +225,12 @@ export default function DataTable({
       const totalFinalProd = gLogs.reduce((sum, l) => sum + (l.finalProd || 0), 0);
       const totalTarget = gLogs.reduce((sum, l) => sum + (l.target || 0), 0);
 
-      const pctProdLogs = gLogs.filter((l) => !l.isLeave && !l.isWastewater && l.target > 0);
+      const pctProdLogs = gLogs.filter((l) => !l.isLeave && !l.isWastewater && !l.isTraining && l.target > 0);
       const avgPctProd = pctProdLogs.length > 0 
         ? pctProdLogs.reduce((sum, l) => sum + (l.pctProd || 0), 0) / pctProdLogs.length
         : 0;
       
-      const pctEffLogs = gLogs.filter((l) => !l.isLeave && !l.isWastewater && l.workMins > 0);
+      const pctEffLogs = gLogs.filter((l) => !l.isLeave && !l.isWastewater && !l.isTraining && l.workMins > 0);
       const avgPctEff = pctEffLogs.length > 0
         ? pctEffLogs.reduce((sum, l) => sum + (l.pctEff || 0), 0) / pctEffLogs.length
         : 0;
@@ -238,11 +245,13 @@ export default function DataTable({
         isOffDay: offDaysCount > 0,
         isLeave: leaveDaysCount > 0,
         isWastewater: wastewaterDaysCount > 0,
+        isTraining: trainingDaysCount > 0,
         typeA: totalTypeA,
         typeB: totalTypeB,
         typeC: totalTypeC,
         foodSample: totalFoodSample,
         combinedSample: totalCombinedSample,
+        cnASample: totalCnASample,
         onlyRslSample: totalOnlyRslSample,
         workMins: totalWorkMins,
         extra: totalExtra,
@@ -256,6 +265,7 @@ export default function DataTable({
         offDaysCount,
         leaveDaysCount,
         wastewaterDaysCount,
+        trainingDaysCount,
         isAggregated: true,
       };
     });
@@ -285,6 +295,8 @@ export default function DataTable({
   const totalRecords = filteredLogs.length;
   const totalOffDays = filteredLogs.filter((l) => l.isOffDay).length;
   const totalLeaves = filteredLogs.filter((l) => l.isLeave).length;
+  const totalWastewater = filteredLogs.filter((l) => l.isWastewater).length;
+  const totalTraining = filteredLogs.filter((l) => l.isTraining).length;
   const totalTypeA = filteredLogs.reduce((sum, l) => sum + (l.typeA || 0), 0);
   const totalTypeB = filteredLogs.reduce((sum, l) => sum + (l.typeB || 0), 0);
   const totalTypeC = filteredLogs.reduce((sum, l) => sum + (l.typeC || 0), 0);
@@ -294,6 +306,10 @@ export default function DataTable({
   );
   const totalCombined = filteredLogs.reduce(
     (sum, l) => sum + (l.combinedSample || 0),
+    0,
+  );
+  const totalCnASample = filteredLogs.reduce(
+    (sum, l) => sum + (l.cnASample || 0),
     0,
   );
   const totalOnlyRsl = filteredLogs.reduce(
@@ -365,6 +381,7 @@ export default function DataTable({
       "Final commit without Short Acknowledgement",
       "Food sample",
       "Combined sample",
+      "C&A Sample",
       "Only RSL sample",
       "Working Minutes",
       "Extra Time (mins)",
@@ -391,6 +408,7 @@ export default function DataTable({
         log.typeC,
         log.foodSample,
         log.combinedSample || 0,
+        log.cnASample || 0,
         log.onlyRslSample || 0,
         log.workMins,
         log.extra,
@@ -750,6 +768,9 @@ export default function DataTable({
               <th className="p-3 text-center text-teal-800 font-semibold font-mono">
                 Wastewater
               </th>
+              <th className="p-3 text-center text-amber-800 font-semibold font-mono">
+                Training
+              </th>
               <th className="p-3 text-center bg-indigo-100 text-indigo-950 font-extrabold text-[11px] leading-tight max-w-[90px] whitespace-normal">
                 Actual<br />productivity
               </th>
@@ -777,6 +798,9 @@ export default function DataTable({
               <th className="p-3 text-center text-[10px] leading-tight font-extrabold max-w-[120px] whitespace-normal break-words">
                 Combined sample
               </th>
+              <th className="p-3 text-center text-[10px] leading-tight font-extrabold max-w-[120px] whitespace-normal break-words">
+                C&A Sample
+              </th>
               <th className="p-3 text-center text-[10px] leading-tight font-extrabold max-w-[120px] whitespace-normal break-words bg-emerald-50 text-emerald-950 font-bold">
                 Only RSL sample
               </th>
@@ -793,7 +817,7 @@ export default function DataTable({
             {displayLogs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={isOwnerMode ? 21 : 20}
+                  colSpan={isOwnerMode ? 24 : 22}
                   className="text-center py-8 text-slate-400 font-sans"
                 >
                   No matching production journal entries found. Check your
@@ -811,25 +835,31 @@ export default function DataTable({
                 const isEditing = editingUid === log.uid;
 
                 // Real-time calculations while editing to keep columns synced
+                const rawIsLeaveOrTraining = !!editForm.isLeave || !!editForm.isTraining;
                 const editCalcs = isEditing
                   ? computeLogCalculations({
                       uid: editForm.uid || log.uid,
                       date: editForm.date || log.date,
                       id: editForm.id || log.id,
                       name: editForm.name || log.name,
-                      inTime: editForm.isLeave ? "" : editForm.inTime || "",
-                      outTime: editForm.isLeave ? "" : editForm.outTime || "",
+                      inTime: rawIsLeaveOrTraining ? "" : editForm.inTime || "",
+                      outTime: rawIsLeaveOrTraining ? "" : editForm.outTime || "",
                       isOffDay: !!editForm.isOffDay,
                       isLeave: !!editForm.isLeave,
-                      typeA: editForm.isLeave ? 0 : Number(editForm.typeA || 0),
-                      typeB: editForm.isLeave ? 0 : Number(editForm.typeB || 0),
-                      typeC: editForm.isLeave ? 0 : Number(editForm.typeC || 0),
-                      foodSample: editForm.isLeave
+                      isWastewater: !!editForm.isWastewater,
+                      isTraining: !!editForm.isTraining,
+                      typeA: rawIsLeaveOrTraining ? 0 : Number(editForm.typeA || 0),
+                      typeB: rawIsLeaveOrTraining ? 0 : Number(editForm.typeB || 0),
+                      typeC: rawIsLeaveOrTraining ? 0 : Number(editForm.typeC || 0),
+                      foodSample: rawIsLeaveOrTraining
                         ? 0
                         : Number(editForm.foodSample || 0),
-                      combinedSample: editForm.isLeave
+                      combinedSample: rawIsLeaveOrTraining
                         ? 0
                         : Number(editForm.combinedSample || 0),
+                      cnASample: rawIsLeaveOrTraining
+                        ? 0
+                        : Number(editForm.cnASample || 0),
                     })
                   : null;
 
@@ -987,13 +1017,13 @@ export default function DataTable({
                             setEditForm({
                               ...editForm,
                               isOffDay: e.target.checked,
-                              ...(e.target.checked ? { isLeave: false } : {}),
+                              ...(e.target.checked ? { isLeave: false, isTraining: false } : {}),
                             })
                           }
                           className="rounded"
                         />
                       ) : isAggregated ? (
-                        <span className="font-sans text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 rounded px-1.5 py-0.5 select-none shrink-0 inline-block">
+                        <span className="font-sans text-[10px] font-extrabold bg-amber-50 text-amber-808 border border-amber-200 rounded px-1.5 py-0.5 select-none shrink-0 inline-block">
                           {(log as any).offDaysCount} Off
                         </span>
                       ) : log.isOffDay ? (
@@ -1016,7 +1046,7 @@ export default function DataTable({
                               ...editForm,
                               isLeave: e.target.checked,
                               ...(e.target.checked
-                                ? { isOffDay: false, isWastewater: false }
+                                ? { isOffDay: false, isWastewater: false, isTraining: false }
                                 : {}),
                             })
                           }
@@ -1045,7 +1075,7 @@ export default function DataTable({
                             setEditForm({
                               ...editForm,
                               isWastewater: e.target.checked,
-                              ...(e.target.checked ? { isLeave: false } : {}),
+                              ...(e.target.checked ? { isLeave: false, isTraining: false } : {}),
                             })
                           }
                           className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
@@ -1056,6 +1086,34 @@ export default function DataTable({
                         </span>
                       ) : log.isWastewater ? (
                         <span className="px-1.5 py-0.5 rounded bg-teal-100 text-teal-850 text-[10px] uppercase font-bold font-sans border border-teal-200">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">No</span>
+                      )}
+                    </td>
+
+                    {/* Training */}
+                    <td className="p-3 text-center">
+                      {isEditing ? (
+                        <input
+                          type="checkbox"
+                          checked={!!editForm.isTraining}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              isTraining: e.target.checked,
+                              ...(e.target.checked ? { isLeave: false, isOffDay: false, isWastewater: false } : {}),
+                            })
+                          }
+                          className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        />
+                      ) : isAggregated ? (
+                        <span className="font-sans text-[10px] font-extrabold bg-amber-50/80 text-amber-800 border border-amber-200 rounded px-1.5 py-0.5 select-none shrink-0 inline-block">
+                          {(log as any).trainingDaysCount || 0} TR
+                        </span>
+                      ) : log.isTraining ? (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100/80 text-amber-900 border border-amber-200 text-[10px] uppercase font-bold font-sans">
                           Yes
                         </span>
                       ) : (
@@ -1188,6 +1246,27 @@ export default function DataTable({
                       )}
                     </td>
 
+                    {/* C&A Sample */}
+                    <td className="p-3 text-center">
+                      {isEditing && !editForm.isLeave ? (
+                        <input
+                          type="number"
+                          value={editForm.cnASample || 0}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              cnASample: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="border border-slate-300 rounded p-0.5 text-[10px] w-10 text-center font-mono text-slate-805"
+                        />
+                      ) : log.isLeave ? (
+                        "0"
+                      ) : (
+                        log.cnASample || 0
+                      )}
+                    </td>
+
                     {/* Only RSL sample */}
                     <td className="p-3 text-center bg-emerald-50 text-emerald-950 font-bold">
                       {displayLog.isLeave
@@ -1287,6 +1366,12 @@ export default function DataTable({
                 <td className="p-3 text-center text-teal-800 font-bold bg-teal-50/50">
                   {totalLeaves}
                 </td>
+                <td className="p-3 text-center text-teal-800 font-bold bg-teal-50/50">
+                  {totalWastewater}
+                </td>
+                <td className="p-3 text-center text-amber-800 font-bold bg-amber-50/50">
+                  {totalTraining}
+                </td>
                 {/* Actual Productivity */}
                 <td className="p-3 text-center bg-indigo-100/60 text-indigo-900 font-semibold">
                   {totalActProd.toFixed(0)}
@@ -1308,6 +1393,7 @@ export default function DataTable({
                 <td className="p-3 text-center">{totalTypeC}</td>
                 <td className="p-3 text-center">{totalFood}</td>
                 <td className="p-3 text-center">{totalCombined}</td>
+                <td className="p-3 text-center">{totalCnASample}</td>
                 <td className="p-3 text-center bg-emerald-100/60 text-emerald-950 font-bold">
                   {totalOnlyRsl.toFixed(0)}
                 </td>

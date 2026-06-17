@@ -29,11 +29,13 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
   const [isOffDay, setIsOffDay] = useState<boolean>(false);
   const [isLeave, setIsLeave] = useState<boolean>(false);
   const [isWastewater, setIsWastewater] = useState<boolean>(false);
+  const [isTraining, setIsTraining] = useState<boolean>(false);
   const [typeA, setTypeA] = useState<number | "">(0);
   const [typeB, setTypeB] = useState<number | "">(0);
   const [typeC, setTypeC] = useState<number | "">(0);
   const [foodSample, setFoodSample] = useState<number | "">(0);
   const [combinedSample, setCombinedSample] = useState<number | "">(0);
+  const [cnASample, setCnASample] = useState<number | "">(0);
 
   // Validation state
   const [errorMess, setErrorMess] = useState<string | null>(null);
@@ -56,25 +58,28 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
   const [preview, setPreview] = useState<Partial<DailyLog>>({});
 
   useEffect(() => {
+    const rawIsLeaveOrTraining = isLeave || isTraining;
     const rawData = {
       uid: "preview",
       date,
       id: empId || "DEMO",
       name: empName || "Awaiting Name",
-      inTime: isLeave ? "" : inTime,
-      outTime: isLeave ? "" : outTime,
+      inTime: rawIsLeaveOrTraining ? "" : inTime,
+      outTime: rawIsLeaveOrTraining ? "" : outTime,
       isOffDay,
       isLeave,
       isWastewater,
-      typeA: isLeave ? 0 : Number(typeA),
-      typeB: isLeave ? 0 : Number(typeB),
-      typeC: isLeave ? 0 : Number(typeC),
-      foodSample: isLeave ? 0 : Number(foodSample),
-      combinedSample: isLeave ? 0 : Number(combinedSample),
+      isTraining,
+      typeA: rawIsLeaveOrTraining ? 0 : Number(typeA),
+      typeB: rawIsLeaveOrTraining ? 0 : Number(typeB),
+      typeC: rawIsLeaveOrTraining ? 0 : Number(typeC),
+      foodSample: rawIsLeaveOrTraining ? 0 : Number(foodSample),
+      combinedSample: rawIsLeaveOrTraining ? 0 : Number(combinedSample),
+      cnASample: rawIsLeaveOrTraining ? 0 : Number(cnASample),
     };
     
     setPreview(computeLogCalculations(rawData));
-  }, [date, empId, empName, inTime, outTime, isOffDay, isLeave, isWastewater, typeA, typeB, typeC, foodSample, combinedSample]);
+  }, [date, empId, empName, inTime, outTime, isOffDay, isLeave, isWastewater, isTraining, typeA, typeB, typeC, foodSample, combinedSample, cnASample]);
 
   // Submit Handler
   const handleSubmit = (e: React.FormEvent) => {
@@ -101,21 +106,24 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
     }
 
     // Capture calculated data
+    const rawIsLeaveOrTraining = isLeave || isTraining;
     const finalData = computeLogCalculations({
       uid: `log_${Date.now()}`,
       date,
       id: empId.trim().toUpperCase(),
       name: empName.trim(),
-      inTime: isLeave ? "" : inTime,
-      outTime: isLeave ? "" : outTime,
+      inTime: rawIsLeaveOrTraining ? "" : inTime,
+      outTime: rawIsLeaveOrTraining ? "" : outTime,
       isOffDay,
       isLeave,
       isWastewater,
-      typeA: isLeave ? 0 : Number(typeA),
-      typeB: isLeave ? 0 : Number(typeB),
-      typeC: isLeave ? 0 : Number(typeC),
-      foodSample: isLeave ? 0 : Number(foodSample),
-      combinedSample: isLeave ? 0 : Number(combinedSample),
+      isTraining,
+      typeA: rawIsLeaveOrTraining ? 0 : Number(typeA),
+      typeB: rawIsLeaveOrTraining ? 0 : Number(typeB),
+      typeC: rawIsLeaveOrTraining ? 0 : Number(typeC),
+      foodSample: rawIsLeaveOrTraining ? 0 : Number(foodSample),
+      combinedSample: rawIsLeaveOrTraining ? 0 : Number(combinedSample),
+      cnASample: rawIsLeaveOrTraining ? 0 : Number(cnASample),
     });
 
     onAddLog(finalData);
@@ -131,11 +139,13 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
     setIsOffDay(false);
     setIsLeave(false);
     setIsWastewater(false);
+    setIsTraining(false);
     setTypeA("");
     setTypeB("");
     setTypeC("");
     setFoodSample("");
     setCombinedSample("");
+    setCnASample("");
     setErrorMess(null);
   };
 
@@ -251,6 +261,7 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
                     setIsOffDay(e.target.checked);
                     if (e.target.checked) {
                       setIsLeave(false);
+                      setIsTraining(false);
                     }
                   }}
                   className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
@@ -261,15 +272,56 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
               <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={isLeave}
+                  onChange={(e) => {
+                    setIsLeave(e.target.checked);
+                    if (e.target.checked) {
+                      setIsOffDay(false);
+                      setIsTraining(false);
+                      setIsWastewater(false);
+                    }
+                  }}
+                  className="rounded-md border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                />
+                <span className="text-xs font-medium text-purple-700">Leave</span>
+              </label>
+
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
                   checked={isWastewater}
                   onChange={(e) => {
                     setIsWastewater(e.target.checked);
+                    if (e.target.checked) {
+                      setIsLeave(false);
+                      setIsTraining(false);
+                    }
                   }}
                   className="rounded-md border-slate-300 text-teal-600 focus:ring-teal-500 w-4 h-4"
                 />
                 <span className="text-xs font-medium text-teal-700 flex items-center gap-1">
                   Wastewater Sampling
                   <Tooltip text="Checked if the employee undertook wastewater sampling fieldwork on this date. Exempts desk-work production requirements." />
+                </span>
+              </label>
+
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isTraining}
+                  onChange={(e) => {
+                    setIsTraining(e.target.checked);
+                    if (e.target.checked) {
+                      setIsOffDay(false);
+                      setIsLeave(false);
+                      setIsWastewater(false);
+                    }
+                  }}
+                  className="rounded-md border-slate-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                />
+                <span className="text-xs font-medium text-amber-700 flex items-center gap-1">
+                  Training
+                  <Tooltip text="Checked if the employee was in training on this date. Sets productivity and work minutes to zero." />
                 </span>
               </label>
             </div>
@@ -434,6 +486,25 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
 
             <div>
               <label className="block text-[10px] sm:text-xs font-semibold text-indigo-950 mb-1 leading-tight min-h-[32px] flex items-center gap-1">
+                <span>C&A Sample</span>
+                <Tooltip text="The portion of C&A samples (no impact on productivity & efficiency)." />
+              </label>
+              <input
+                type="number"
+                min="0"
+                required
+                disabled={isLeave}
+                value={isLeave ? "0" : cnASample}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCnASample(val === "" ? "" : Math.max(0, parseInt(val) || 0));
+                }}
+                className="w-full text-sm font-mono border border-indigo-100 rounded-xl px-3 py-1.5 bg-white disabled:opacity-60 focus:outline-hidden focus:border-indigo-500 text-center"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] sm:text-xs font-semibold text-indigo-950 mb-1 leading-tight min-h-[32px] flex items-center gap-1">
                 <span>Only RSL sample</span>
                 <Tooltip text="Calculated dynamically as (Total Productivity - Combined sample)." />
               </label>
@@ -484,6 +555,10 @@ export default function InputForm({ onAddLog, onClose, existingLogs, employees }
               <div className="flex justify-between border-b border-slate-800 pb-1.5 text-[11px]">
                 <span className="text-slate-400 pl-2">- Combined sample:</span>
                 <span className="text-slate-300">{preview.combinedSample || 0}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-800 pb-1.5 text-[11px]">
+                <span className="text-slate-400 pl-2">- C&A Sample:</span>
+                <span className="text-slate-300">{preview.cnASample || 0}</span>
               </div>
               <div className="flex justify-between border-b border-slate-800 pb-1.5 text-[11px]">
                 <span className="text-slate-400 pl-2">- Only RSL sample:</span>

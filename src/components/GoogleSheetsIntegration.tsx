@@ -102,6 +102,7 @@ const colMap: { [key: string]: ColDefinition } = {
   U: { label: "Leave (Days)", getValue: (log) => log.isLeave ? 1 : 0, isNumeric: true, isPercentage: false },
   V: { label: "Off day duty", getValue: (log) => log.isOffDay ? 1 : 0, isNumeric: true, isPercentage: false },
   W: { label: "Wastewater Sampling", getValue: (log) => log.isWastewater ? "Yes" : "No", isNumeric: false, isPercentage: false },
+  X: { label: "C&A Sample", getValue: (log) => log.cnASample || 0, isNumeric: true, isPercentage: false },
 };
 
 interface RunQueryResult {
@@ -508,12 +509,12 @@ export default function GoogleSheetsIntegration({
 
   // Helper: Compile current logs to clean CSV text format matching requested schema
   const generateCsvText = (dataset: DailyLog[]): string => {
-    let csv = "Date,ID,Name,In,Out,Off Day,Leave,Wastewater Sampling,Short Acknowledgement with final commit,Only Short Acknowledgement,Final commit without Short Acknowledgement,Food sample,Combined sample,Only RSL sample,Leave (Days),Off day duty,Work Mins,Extra,Act. Prod,Final Prod,Target,% Prod,% Eff\n";
+    let csv = "Date,ID,Name,In,Out,Off Day,Leave,Wastewater Sampling,Short Acknowledgement with final commit,Only Short Acknowledgement,Final commit without Short Acknowledgement,Food sample,Combined sample,C&A Sample,Only RSL sample,Leave (Days),Off day duty,Work Mins,Extra,Act. Prod,Final Prod,Target,% Prod,% Eff\n";
     dataset.forEach((log) => {
       const isOff = log.isOffDay ? "Yes" : "No";
       const isL = log.isLeave ? "Yes" : "No";
       const isW = log.isWastewater ? "Yes" : "No";
-      csv += `"${log.date || ""}","${log.id || ""}","${log.name || ""}","${log.inTime || ""}","${log.outTime || ""}","${isOff}","${isL}","${isW}",${log.typeA || 0},${log.typeB || 0},${log.typeC || 0},${log.foodSample || 0},${log.combinedSample || 0},${log.onlyRslSample || 0},${log.isLeave ? 1 : 0},${log.isOffDay ? 1 : 0},${log.workMins || 0},${log.extra || 0},${(log.actProd || 0).toFixed(0)},${(log.finalProd || 0).toFixed(0)},${log.target || 11},${(log.pctProd || 0).toFixed(1)}%,${(log.pctEff || 0).toFixed(1)}%\n`;
+      csv += `"${log.date || ""}","${log.id || ""}","${log.name || ""}","${log.inTime || ""}","${log.outTime || ""}","${isOff}","${isL}","${isW}",${log.typeA || 0},${log.typeB || 0},${log.typeC || 0},${log.foodSample || 0},${log.combinedSample || 0},${log.cnASample || 0},${log.onlyRslSample || 0},${log.isLeave ? 1 : 0},${log.isOffDay ? 1 : 0},${log.workMins || 0},${log.extra || 0},${(log.actProd || 0).toFixed(0)},${(log.finalProd || 0).toFixed(0)},${log.target || 11},${(log.pctProd || 0).toFixed(1)}%,${(log.pctEff || 0).toFixed(1)}%\n`;
     });
     return csv;
   };

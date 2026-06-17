@@ -23,6 +23,7 @@ export interface AggregatedRow {
   totalTypeC: number;
   totalFood: number;
   totalCombined: number;
+  totalCnA: number;
   totalOnlyRsl: number;
   totalMins: number;
   totalExtra: number;
@@ -136,6 +137,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
         totalTypeC: 0,
         totalFood: 0,
         totalCombined: 0,
+        totalCnA: 0,
         totalOnlyRsl: 0,
         totalMins: 0,
         totalExtra: 0,
@@ -158,6 +160,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
     row.totalTypeC += log.typeC || 0;
     row.totalFood += log.foodSample || 0;
     row.totalCombined += log.combinedSample || 0;
+    row.totalCnA += log.cnASample || 0;
     row.totalOnlyRsl += log.onlyRslSample || 0;
     row.totalMins += log.workMins || 0;
     row.totalExtra += log.extra || 0;
@@ -195,6 +198,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
       totalTypeC: row.totalTypeC,
       totalFood: row.totalFood,
       totalCombined: row.totalCombined,
+      totalCnA: row.totalCnA,
       totalOnlyRsl: row.totalOnlyRsl,
       totalMins: row.totalMins,
       totalExtra: row.totalExtra,
@@ -222,6 +226,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
   const totalTypeCAll = aggRows.reduce((sum, r) => sum + r.totalTypeC, 0);
   const totalFoodAll = aggRows.reduce((sum, r) => sum + r.totalFood, 0);
   const totalCombinedAll = aggRows.reduce((sum, r) => sum + r.totalCombined, 0);
+  const totalCnAAll = aggRows.reduce((sum, r) => sum + r.totalCnA, 0);
   const totalOnlyRslAll = aggRows.reduce((sum, r) => sum + r.totalOnlyRsl, 0);
   const totalMinsAll = aggRows.reduce((sum, r) => sum + r.totalMins, 0);
   const totalExtraAll = aggRows.reduce((sum, r) => sum + r.totalExtra, 0);
@@ -258,6 +263,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
       "Final commit without Short Ack (C)",
       "Food sample (D)",
       "Combined sample",
+      "C&A Sample",
       "Only RSL sample",
       "Total Minutes",
       "Total Extra Time"
@@ -285,6 +291,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
         row.totalTypeC.toString(),
         row.totalFood.toString(),
         row.totalCombined.toString(),
+        row.totalCnA.toString(),
         row.totalOnlyRsl.toFixed(0),
         row.totalMins.toString(),
         row.totalExtra.toString()
@@ -622,6 +629,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
                 <th className="p-3 text-center" title="Final commit without Short Acknowledgement">Commit w/o Ack (C)</th>
                 <th className="p-3 text-center">Food (D)</th>
                 <th className="p-3 text-center">Combined</th>
+                <th className="p-3 text-center">C&A Sample</th>
                 <th className="p-3 text-center bg-emerald-50 text-emerald-950 font-bold">Only RSL</th>
                 <th className="p-3 text-center bg-sky-50 text-sky-950 font-bold">Minutes</th>
                 <th className="p-3 text-center bg-amber-50 text-amber-950 font-bold">Extra Mins</th>
@@ -630,7 +638,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
             <tbody className="divide-y divide-slate-100">
               {aggRows.length === 0 ? (
                 <tr>
-                  <td colSpan={22} className="p-8 text-center text-slate-400 font-sans">
+                  <td colSpan={23} className="p-8 text-center text-slate-400 font-sans">
                     No logs directory match for the active filters.
                   </td>
                 </tr>
@@ -657,6 +665,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
                     <td className="p-3 text-center text-slate-600">{row.totalTypeC}</td>
                     <td className="p-3 text-center text-slate-600">{row.totalFood}</td>
                     <td className="p-3 text-center text-slate-600">{row.totalCombined}</td>
+                    <td className="p-3 text-center text-slate-600">{row.totalCnA}</td>
                     <td className="p-3 text-center bg-emerald-50/20 text-emerald-900 font-medium">{(row.totalOnlyRsl || 0).toFixed(0)}</td>
                     <td className="p-3 text-center bg-sky-50/20 text-sky-900 font-medium">{row.totalMins}m</td>
                     <td className="p-3 text-center bg-amber-50/20 text-amber-900 font-medium">{row.totalExtra}m</td>
@@ -687,6 +696,7 @@ export default function SummariesView({ logs: rawLogs, employees = [] }: Summari
                   <td className="p-3 text-center text-slate-700">{totalTypeCAll}</td>
                   <td className="p-3 text-center text-slate-700">{totalFoodAll}</td>
                   <td className="p-3 text-center text-slate-700">{totalCombinedAll}</td>
+                  <td className="p-3 text-center text-slate-700">{totalCnAAll}</td>
                   <td className="p-3 text-center bg-emerald-100/50 text-emerald-950 font-bold">{totalOnlyRslAll.toFixed(0)}</td>
                   <td className="p-3 text-center bg-sky-100/50 text-sky-900 font-bold">{totalMinsAll}</td>
                   <td className="p-3 text-center bg-amber-100/50 text-amber-900 font-bold">{totalExtraAll}</td>

@@ -61,13 +61,41 @@ export default function App() {
 
   // System States
   const [activeTab, setActiveTab] = useState<"journal" | "dashboard" | "summaries" | "sync" | "directory">("journal");
+  
+  const [isDateManuallyChanged, setIsDateManuallyChanged] = useState<boolean>(() => {
+    return safeStorage.getItem("productivity_is_date_manually_changed") === "true";
+  });
+
   const [simulatedToday, setSimulatedToday] = useState<string>(() => {
+    const saved = safeStorage.getItem("productivity_simulated_today_v3");
+    if (saved && safeStorage.getItem("productivity_is_date_manually_changed") === "true") {
+      return saved;
+    }
     const local = new Date();
     const year = local.getFullYear();
     const month = String(local.getMonth() + 1).padStart(2, "0");
     const day = String(local.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   });
+
+  const handleSimulatedTodayChange = (newDate: string) => {
+    setSimulatedToday(newDate);
+    setIsDateManuallyChanged(true);
+    safeStorage.setItem("productivity_is_date_manually_changed", "true");
+    safeStorage.setItem("productivity_simulated_today_v3", newDate);
+  };
+
+  const resetSimulatedToday = () => {
+    const local = new Date();
+    const year = local.getFullYear();
+    const month = String(local.getMonth() + 1).padStart(2, "0");
+    const day = String(local.getDate()).padStart(2, "0");
+    const todayStr = `${year}-${month}-${day}`;
+    setSimulatedToday(todayStr);
+    setIsDateManuallyChanged(false);
+    safeStorage.removeItem("productivity_is_date_manually_changed");
+    safeStorage.removeItem("productivity_simulated_today_v3");
+  };
 
   // Track calendar transitions and keep simulatedToday dynamically in sync
   useEffect(() => {
@@ -81,16 +109,18 @@ export default function App() {
 
     const interval = setInterval(() => {
       const currentCalendarDate = getLocalDateString();
-      setSimulatedToday((prev) => {
-        if (prev !== currentCalendarDate) {
-          return currentCalendarDate;
-        }
-        return prev;
-      });
+      if (!isDateManuallyChanged) {
+        setSimulatedToday((prev) => {
+          if (prev !== currentCalendarDate) {
+            return currentCalendarDate;
+          }
+          return prev;
+        });
+      }
     }, 15000); // Check every 15 seconds to be highly responsive
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isDateManuallyChanged]);
 
   const [isOwnerMode, setIsOwnerMode] = useState<boolean>(false);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
@@ -1182,7 +1212,7 @@ export default function App() {
             </button>
 
             {/* Simulated target date selector */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-white px-2.5 py-1 rounded-xl">
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-white px-2.5 py-1 rounded-xl shadow-2xs">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <label className="font-semibold text-slate-500 font-sans uppercase tracking-[0.05em] text-[10px]">
                 System Today:
@@ -1190,10 +1220,20 @@ export default function App() {
               <input
                 type="date"
                 value={simulatedToday}
-                onChange={(e) => setSimulatedToday(e.target.value)}
+                onChange={(e) => handleSimulatedTodayChange(e.target.value)}
                 className="font-mono text-xs border-0 bg-transparent text-slate-950 focus:ring-0 p-0 font-bold focus:outline-hidden"
                 title="Change system's calendar date to test midnight-protection locks on historical data!"
               />
+              {isDateManuallyChanged && (
+                <button
+                  type="button"
+                  onClick={resetSimulatedToday}
+                  className="ml-1 px-1.5 py-0.5 text-[9px] bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold rounded-md border border-amber-200 transition-colors cursor-pointer"
+                  title="Reset to today's real date and resume automated calendar sync"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
 
@@ -1521,7 +1561,7 @@ export default function App() {
         ) : (
           <>
             {/* Global Highlight Metrics */}
-            <MetricCards logs={visibleLogs} employees={visibleEmployees} simulatedToday={simulatedToday} onSimulatedTodayChange={setSimulatedToday} />
+            <MetricCards logs={visibleLogs} employees={visibleEmployees} simulatedToday={simulatedToday} onSimulatedTodayChange={handleSimulatedTodayChange} />
 
             {/* Menu Tabs Navigation */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-px">

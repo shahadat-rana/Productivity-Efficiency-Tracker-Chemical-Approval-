@@ -163,6 +163,7 @@ export function generateSeedLogs(): DailyLog[] {
       typeC,
       foodSample,
       combinedSample,
+      cnASample: 0,
     };
 
     logs.push(computeLogCalculations(raw));

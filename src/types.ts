@@ -8,11 +8,13 @@ export interface DailyLog {
   isOffDay: boolean; // Yes/No
   isLeave: boolean; // Yes/No
   isWastewater?: boolean; // Wastewater sampling visit
+  isTraining?: boolean; // Training day
   typeA: number; // Short Acknowledgement with final commit (1:1)
   typeB: number; // Only Short Acknowledgement (5:1)
   typeC: number; // Final commit without Short Acknowledgement (subtract 1 for every 5: actual = C * 0.8)
   foodSample: number; // Food sample (Total sample) (1:1)
   combinedSample: number; // Combined sample
+  cnASample: number; // C&A Sample (0-impact on productivity & efficiency)
   
   // Calculated fields
   leaveDays: number; // calculated as 1 if isLeave is true, else 0

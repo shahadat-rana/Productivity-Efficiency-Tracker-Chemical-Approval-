@@ -169,42 +169,88 @@ export function isSaturdayDate(dateStr: string): boolean {
 }
 
 /**
+ * Checks if a date string is an off day for a specific employee ID.
+ * D9771 - Friday & Saturday
+ * D9655 - Saturday & Tuesday
+ * D9263 - Saturday & Sunday
+ * D9998 - Saturday & Thursday
+ * D0718 - Saturday & Monday
+ * D0732 - Saturday & Wednesday
+ */
+export function isEmployeeOffDay(empId: string, dateStr: string): boolean {
+  try {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      const dayOfWeek = d.getDay(); // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
+
+      const id = empId.toUpperCase();
+      if (id === "D9771") {
+        return dayOfWeek === 5 || dayOfWeek === 6; // Friday & Saturday
+      } else if (id === "D9655") {
+        return dayOfWeek === 6 || dayOfWeek === 2; // Saturday & Tuesday
+      } else if (id === "D9263") {
+        return dayOfWeek === 6 || dayOfWeek === 0; // Saturday & Sunday
+      } else if (id === "D9998") {
+        return dayOfWeek === 6 || dayOfWeek === 4; // Saturday & Thursday
+      } else if (id === "D0718") {
+        return dayOfWeek === 6 || dayOfWeek === 1; // Saturday & Monday
+      } else if (id === "D0732") {
+        return dayOfWeek === 6 || dayOfWeek === 3; // Saturday & Wednesday
+      }
+      return dayOfWeek === 6; // Default fallback: Saturday
+    }
+  } catch (e) {
+    // fallback
+  }
+  return false;
+}
+
+/**
  * Fully computes all calculated fields for a log entry.
  */
 export function computeLogCalculations(
   raw: Omit<DailyLog, "leaveDays" | "offDayDuty" | "onlyRslSample" | "workMins" | "extra" | "actProd" | "finalProd" | "target" | "pctProd" | "pctEff">
 ): DailyLog {
+  const isTrainingCalculated = !!raw.isTraining || (raw.id.toUpperCase() === "D9771" && raw.date === "2026-05-13");
   const isHoliday = GOVERNMENT_HOLIDAYS_2026.has(raw.date);
   const isHolidayOff = isHoliday && (!raw.inTime || !raw.outTime);
-  const isSaturday = isSaturdayDate(raw.date);
+  const isScheduledOffDay = isEmployeeOffDay(raw.id, raw.date);
 
   // Calculate actual worked minutes if there's check-in/out times to evaluate the sub-450 minutes off-day trigger
   let actualWorkMins = 0;
-  if (!raw.isLeave && raw.inTime && raw.outTime) {
+  if (!raw.isLeave && !isTrainingCalculated && raw.inTime && raw.outTime) {
     actualWorkMins = calculateWorkMins(raw.inTime, raw.outTime, false, false);
   }
 
-  // A day counts as Off Day if it was manually submitted as one, if it's Saturday, or if the worked minutes is below 450 minutes
-  const isOffDayCalculated = !!raw.isOffDay || isSaturday || (!!raw.inTime && !!raw.outTime && !raw.isLeave && actualWorkMins < 450);
+  // A day counts as Off Day if it was manually submitted as one, if it matches the employee scheduled off days, or if the worked minutes is below 450 minutes
+  const isOffDayCalculated = !isTrainingCalculated && (!!raw.isOffDay || isScheduledOffDay || (!!raw.inTime && !!raw.outTime && !raw.isLeave && actualWorkMins < 450));
 
   const isUnworkedOffDay = isOffDayCalculated && (!raw.inTime || !raw.outTime);
 
-  const workMins = calculateWorkMins(raw.inTime, raw.outTime, isOffDayCalculated, !!raw.isLeave);
+  const workMins = isTrainingCalculated ? 0 : calculateWorkMins(raw.inTime, raw.outTime, isOffDayCalculated, !!raw.isLeave);
   const extra = calculateExtraTime(workMins);
-  const actProd = (raw.isLeave || isHolidayOff || isUnworkedOffDay) ? 0 : calculateActualProd(raw.typeA, raw.typeB, raw.typeC);
-  const finalProd = (raw.isLeave || isHolidayOff || isUnworkedOffDay) ? 0 : calculateFinalProd(actProd, raw.foodSample);
-  const onlyRslSample = (raw.isLeave || isHolidayOff || isUnworkedOffDay) ? 0 : Math.round(finalProd - raw.combinedSample);
+  
+  const isZeroProd = raw.isLeave || isTrainingCalculated || isHolidayOff || isUnworkedOffDay;
+  const actProd = isZeroProd ? 0 : calculateActualProd(raw.typeA, raw.typeB, raw.typeC);
+  const finalProd = isZeroProd ? 0 : calculateFinalProd(actProd, raw.foodSample);
+  const onlyRslSample = isZeroProd ? 0 : Math.round(finalProd - raw.combinedSample);
   const leaveDays = raw.isLeave ? 1 : 0;
   const offDayDuty = (isOffDayCalculated && (!!raw.inTime || !!raw.outTime)) ? 1 : 0;
   
-  const target = (raw.isLeave || raw.isWastewater || isHolidayOff || isUnworkedOffDay) ? 0 : 11; // target is 0 on leave, wastewater, or unworked off/holiday days
-  const pctProd = (raw.isLeave || raw.isWastewater || isHolidayOff || isUnworkedOffDay) ? 0 : calculatePctProd(finalProd, target);
-  const pctEff = (raw.isLeave || raw.isWastewater || isHolidayOff || isUnworkedOffDay) ? 0 : calculatePctEff(finalProd, workMins);
+  const isZeroTarget = raw.isLeave || isTrainingCalculated || raw.isWastewater || isHolidayOff || isUnworkedOffDay;
+  const target = isZeroTarget ? 0 : 11; // target is 0 on leave, wastewater, training, or unworked off/holiday days
+  const pctProd = isZeroTarget ? 0 : calculatePctProd(finalProd, target);
+  const pctEff = isZeroTarget ? 0 : calculatePctEff(finalProd, workMins);
 
   const { shiftName } = raw.inTime ? getAdjustedInMinutes(raw.inTime) : { shiftName: undefined };
 
   return {
     ...raw,
+    isTraining: isTrainingCalculated,
     isOffDay: isOffDayCalculated,
     leaveDays,
     offDayDuty,
@@ -323,12 +369,13 @@ export function getEnrichedLogs(logs: DailyLog[], employees: Employee[], simulat
   
   for (const date of uniqueDates) {
     const isHoliday = GOVERNMENT_HOLIDAYS_2026.has(date);
-    const isSaturday = isSaturdayDate(date);
     for (const emp of employees) {
+      const isEmpOff = isEmployeeOffDay(emp.id, date);
+      const isTrainingDay = (emp.id.toUpperCase() === "D9771" && date === "2026-05-13");
       const key = `${date}_${emp.id.toUpperCase()}`;
       if (!existingMap.has(key)) {
-        // Create a virtual leave log for this employee on this date
-        // If it is a government holiday or a Saturday, we do NOT want to count it as leave!
+        // Create a virtual leave or training log for this employee on this date
+        // If it is a government holiday, scheduled off day, or training day, we do NOT want to count it as leave!
         const rawVirtual = {
           uid: `virtual_${emp.id}_${date}`,
           date,
@@ -336,13 +383,15 @@ export function getEnrichedLogs(logs: DailyLog[], employees: Employee[], simulat
           name: emp.name,
           inTime: "",
           outTime: "",
-          isOffDay: isSaturday,
-          isLeave: !isHoliday && !isSaturday, // Auto-marked as Approved Leave only if NOT a holiday and NOT Saturday
+          isOffDay: !isTrainingDay && isEmpOff,
+          isLeave: !isHoliday && !isEmpOff && !isTrainingDay,
+          isTraining: isTrainingDay,
           typeA: 0,
           typeB: 0,
           typeC: 0,
           foodSample: 0,
           combinedSample: 0,
+          cnASample: 0,
         };
         
         // Fully compute calculated fields to get correct workMins, pctProd, pctEff, leaveDays etc.

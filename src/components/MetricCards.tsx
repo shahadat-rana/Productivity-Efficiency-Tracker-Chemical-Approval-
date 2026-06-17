@@ -130,22 +130,22 @@ export default function MetricCards({ logs, employees = [], simulatedToday, onSi
 
   const totalFinalProd = filteredLogs.reduce((sum, log) => sum + (log.finalProd || 0), 0);
 
-  // Exclude leave days, unworked holiday days, unworked off days, and days with 0 total productivity when calculating average productivity percentage
+  // Exclude leave days, training days, unworked holiday days, unworked off days, and days with 0 total productivity when calculating average productivity percentage
   const logsForProductivity = filteredLogs.filter((log) => {
     const isHolidayOff = GOVERNMENT_HOLIDAYS_2026.has(log.date) && (!log.inTime || !log.outTime);
     const isOffdayOff = log.isOffDay && (!log.inTime || !log.outTime);
-    return !log.isLeave && !log.isWastewater && !isHolidayOff && !isOffdayOff && (log.finalProd || 0) > 0;
+    return !log.isLeave && !log.isWastewater && !log.isTraining && !isHolidayOff && !isOffdayOff && (log.finalProd || 0) > 0;
   });
   const avgProductivity =
     logsForProductivity.length > 0
       ? logsForProductivity.reduce((sum, log) => sum + (log.pctProd || 0), 0) / logsForProductivity.length
       : 0;
 
-  // Average efficiency only for records where they actually worked (workMins > 0) or off day duty counting style, excluding holiday offs, unworked off days, and days with 0 total productivity
+  // Average efficiency only for records where they actually worked (workMins > 0) or off day duty counting style, excluding holiday offs, training days, unworked off days, and days with 0 total productivity
   const logsWithTime = filteredLogs.filter((log) => {
     const isHolidayOff = GOVERNMENT_HOLIDAYS_2026.has(log.date) && (!log.inTime || !log.outTime);
     const isOffdayOff = log.isOffDay && (!log.inTime || !log.outTime);
-    return !log.isLeave && !log.isWastewater && !isHolidayOff && !isOffdayOff && (log.workMins > 0 || log.isOffDay) && (log.finalProd || 0) > 0;
+    return !log.isLeave && !log.isWastewater && !log.isTraining && !isHolidayOff && !isOffdayOff && (log.workMins > 0 || log.isOffDay) && (log.finalProd || 0) > 0;
   });
   const avgEfficiency =
     logsWithTime.length > 0
@@ -158,6 +158,7 @@ export default function MetricCards({ logs, employees = [], simulatedToday, onSi
 
   const totalOffDays = filteredLogs.filter((log) => log.isOffDay && (!log.inTime || !log.outTime)).length;
   const totalLeaveDays = filteredLogs.filter((log) => log.isLeave).length;
+  const totalTrainingDays = filteredLogs.filter((log) => log.isTraining).length;
 
   const activePerformantTeam = performersSelectedTeam || uniqueTeams[0] || "RSL German";
 
@@ -181,11 +182,11 @@ export default function MetricCards({ logs, employees = [], simulatedToday, onSi
         continue;
       }
 
-      // Filter out non-work entries (leaves, unworked off-days, unworked holidays)
+      // Filter out non-work entries (leaves, training, unworked off-days, unworked holidays)
       const workingLogs = empLogs.filter((log) => {
         const isHolidayOff = GOVERNMENT_HOLIDAYS_2026.has(log.date) && (!log.inTime || !log.outTime);
         const isOffdayOff = log.isOffDay && (!log.inTime || !log.outTime);
-        return !log.isLeave && !log.isWastewater && !isHolidayOff && !isOffdayOff;
+        return !log.isLeave && !log.isWastewater && !log.isTraining && !isHolidayOff && !isOffdayOff;
       });
 
       if (workingLogs.length === 0) continue;
@@ -536,7 +537,7 @@ export default function MetricCards({ logs, employees = [], simulatedToday, onSi
               {filteredStaffCount} <span className="text-xs font-normal text-slate-500">Staff</span>
             </h3>
             <p className="text-[11px] text-slate-500 mt-1 font-sans font-medium">
-              {totalOffDays} Off Days | {totalLeaveDays} Leaves
+              {totalOffDays} Off Days | {totalLeaveDays} Leaves | {totalTrainingDays} Training
             </p>
           </div>
         </div>
